@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat App - WhatsApp Style</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    input, button {
+      padding: 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+      width: 100%;
+      border: 1px solid #ccc;
+    }
+    #chatContainer {
+      background-color: #fff;
+      max-width: 500px;
+      margin: auto;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+    h2, h3 {
+      text-align: center;
+    }
+    .messages {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+    .message {
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 10px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .sent {
+      background-color: #d1f7d1;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+    .received {
+      background-color: #f2f2f2;
+      align-self: flex-start;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="chatContainer">
+    <h2>Welcome to Chat</h2>
+    
+    <input id="nameInput" type="text" placeholder="What's your name?" />
+    <div id="joinContainer">
+      <button onclick="joinChat()">Continue</button>
+    </div>
+
+    <div id="chatRoom" style="display:none;">
+      <h3>You're in the Chat Room</h3>
+      <div class="messages" id="messages"></div>
+      <input id="messageInput" type="text" placeholder="Type your message here..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import { getDatabase, ref, set, push, onChildAdded } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBnoNOvXEMWfcbrTsx8DbedVQ9NgAKOd90",
+      authDomain: "chat-app-2803a.firebaseapp.com",
+      databaseURL: "https://chat-app-2803a-default-rtdb.firebaseio.com",
+      projectId: "chat-app-2803a",
+      storageBucket: "chat-app-2803a.appspot.com",
+      messagingSenderId: "699199923429",
+      appId: "1:699199923429:web:34a8d0524a3fce8cb4a00c"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const chatCode = 'myOnlinePediaFriends';
+
+    const nameInput = document.getElementById('nameInput');
+    const messagesDiv = document.getElementById("messages");
+
+    // Join button click
+    window.joinChat = function() {
+      const name = nameInput.value.trim();
+      if (!name) return alert("Please enter your name.");
+
+      localStorage.setItem("chatUserName", name);
+      showChatRoom();
+      loadLocalMessages();
+    };
+
+    // Show chat UI
+    function showChatRoom() {
+      document.getElementById('joinContainer').style.display = 'none';
+      document.getElementById('chatRoom').style.display = 'block';
+      nameInput.style.display = 'none';
+    }
+
+    // Send message
+    window.sendMessage = function () {
+      const messageInput = document.getElementById("messageInput");
+      const message = messageInput.value.trim();
+      const name = localStorage.getItem("chatUserName");
+
+      if (message) {
+        const newMessage = { name, message };
+        const messageRef = push(ref(db, `chats/${chatCode}/messages`));
+        set(messageRef, newMessage);
+        messageInput.value = '';
+      }
+    };
+
+    // Load from localStorage on join
+    function loadLocalMessages() {
+      const saved = JSON.parse(localStorage.getItem("chatMessages") || "[]");
+      saved.forEach(data => appendMessage(data));
+    }
+
+    // Append a message to UI and localStorage
+    function appendMessage(data) {
+      const msgDiv = document.createElement("div");
+      const user = localStorage.getItem("chatUserName");
+      msgDiv.classList.add("message", data.name === user ? "sent" : "received");
+
+      // Allow emojis in message
+      msgDiv.innerHTML = `<strong>${data.name}:</strong> ${data.message}`;
+
+      messagesDiv.appendChild(msgDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+      // Save to localStorage
+      let saved = JSON.parse(localStorage.getItem("chatMessages") || "[]");
+      saved.push(data);
+
+      // Keep only last 100 messages
+      if (saved.length > 100) saved = saved.slice(saved.length - 100);
+
+      localStorage.setItem("chatMessages", JSON.stringify(saved));
+    }
+
+    // Firebase message listener
+    import { onValue } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+    import { child, get } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+
+    const messagesRef = ref(db, `chats/${chatCode}/messages`);
+    onChildAdded(messagesRef, (snapshot) => {
+      const data = snapshot.val();
+      appendMessage(data);
+    });
+
+    // Auto-fill name if saved
+    window.onload = () => {
+      const savedName = localStorage.getItem("chatUserName");
+      if (savedName) {
+        nameInput.value = savedName;
+        showChatRoom();
+        loadLocalMessages();
+      }
+    };
+  </script>
+</body>
+</html>
