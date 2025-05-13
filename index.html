@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en"> 
+ <head> 
+  <meta charset="UTF-8"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+  <title>Chat App - WhatsApp Style</title> 
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    input, button {
+      padding: 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+      width: 100%;
+      border: 1px solid #ccc;
+    }
+    #chatContainer {
+      background-color: #fff;
+      max-width: 500px;
+      margin: auto;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+    #header {
+      background-color: #f1f1f1;
+      padding: 15px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #header img {
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      margin-right: 10px;
+    }
+    #header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+    #onlineUsers {
+      font-size: 14px;
+      color: green;
+    }
+    .messages {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+    .message {
+      margin: 12px 0;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .sent {
+      align-self: flex-end;
+      text-align: right;
+    }
+    .received {
+      align-self: flex-start;
+      text-align: left;
+    }
+    .msgBubble {
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background-color: #d1f7d1;
+    }
+    .received .msgBubble {
+      background-color: #f2f2f2;
+    }
+    .nameTag {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .send-button {
+      font-size: 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 8px;
+      padding: 12px;
+      width: auto;
+    }
+    .send-button:hover {
+      background-color: #0056b3;
+    }
+    #messageContainer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #messageInput {
+      width: calc(100% - 60px);
+      margin-right: 10px;
+    }
+    #fileInput {
+      display: none;
+    }
+    .file-button {
+      font-size: 24px;
+      background-color: transparent;
+      border: 2px solid #007bff;
+      color: #007bff;
+      cursor: pointer;
+      border-radius: 50%;
+      padding: 12px;
+      width: 50px;
+      height: 50px;
+      text-align: center;
+    }
+    .file-button:hover {
+      background-color: #f0f0f0;
+    }
+    #splashScreen {
+      background-color: #001f3d;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    #splashScreen h1 {
+      color: white;
+      font-size: 40px;
+    }
+    .fileInfo {
+      font-size: 14px;
+      margin-top: 5px;
+    }
+  </style> 
+ </head> 
+ <body> <!-- Splash Screen --> 
+  <div id="splashScreen"> 
+   <h1>𝙶𝚕𝚘𝚋𝚒𝚎 𝚃𝚊𝚕𝚔</h1> 
+  </div> 
+  <div id="chatContainer"> 
+   <div id="header"> 
+    <div style="display: flex; align-items: center;"> 
+     <img src="https://media-hosting.imagekit.io/dae1e286a833411d/power-lightning-logo-icon-vector-electric-fast-thunder-bolt-symbol-isolated-on-transparent.jpg?Expires=1839664925&amp;Key-Pair-Id=K2ZIVPTIP2VGHC&amp;Signature=H7K4dZLWRgXpRy~mWVSQxQeyeJXDFROLVlGX7kz21NC3-P98-gxFzfBxkZy1Z9itGCOJc~1vDRXvu6FXECyuhbGqGgrBeeHkkY8noDAYpqmBsp990TEzyT04JEhYLZmlDgsbdUSGrIQkZcJShb-DILDwq-WoeUquEPUH8Kmeq4up3Vp898gET0QPty-9uK-q8oWHlsaoKlz6b3eXwF0YAkvrYPIbbBDKef-OUAAx~Ezjh5xiEYgegptgWs5Lzimfxx~mDfto~rk3YCIO5jQWcm5XkpAX3Todz6HQOy5jXPUiM9b-UFiIPu6h4l9s~RlOuSnvwrJaISf2bf8mlNbYjw__" alt="Logo"> 
+     <h2>GLOBAL 🌎</h2> 
+    </div> 
+    <div id="onlineUsers">
+     Online: 0
+    </div> 
+   </div> 
+   <div class="messages" id="messages"></div> <!-- File input button --> <label for="fileInput" class="file-button">📁</label> 
+   <input type="file" id="fileInput"> 
+   <div id="messageContainer"> 
+    <input id="messageInput" type="text" placeholder="Enter your message..."> <button class="send-button" onclick="sendMessage()">➤</button> 
+   </div> 
+  </div> 
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import { getDatabase, ref, set, push, onChildAdded, onValue, remove } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBnoNOvXEMWfcbrTsx8DbedVQ9NgAKOd90",
+      authDomain: "chat-app-2803a.firebaseapp.com",
+      databaseURL: "https://chat-app-2803a-default-rtdb.firebaseio.com",
+      projectId: "chat-app-2803a",
+      storageBucket: "chat-app-2803a.appspot.com",
+      messagingSenderId: "699199923429",
+      appId: "1:699199923429:web:34a8d0524a3fce8cb4a00c"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const chatCode = 'myOnlinePediaFriends';
+    const messagesDiv = document.getElementById("messages");
+    const fileInput = document.getElementById("fileInput");
+
+    const messageSound = new Audio("https://github.com/mobilelauncher/SoundfileSens/raw/refs/heads/main/level-up-191997%20(2).mp3");
+
+    let userName = localStorage.getItem("chatUserName");
+    if (!userName) {
+      userName = prompt("Enter your name:");
+      localStorage.setItem("chatUserName", userName);
+    }
+
+    function updateOnlineStatus(status) {
+      const userRef = ref(db, `onlineUsers/${userName}`);
+      if (status === 'online') {
+        set(userRef, true);
+        window.addEventListener("beforeunload", () => remove(userRef));
+      } else {
+        remove(userRef);
+      }
+    }
+
+    function trackOnlineUsers() {
+      const onlineRef = ref(db, `onlineUsers`);
+      onValue(onlineRef, (snapshot) => {
+        const users = snapshot.val();
+        const count = users ? Object.keys(users).length : 0;
+        document.getElementById("onlineUsers").innerText = `Online: ${count}`;
+      });
+    }
+
+    function shortenFileName(fileName) {
+      if (fileName.length > 20) {
+        return fileName.substring(0, 17) + "...";
+      }
+      return fileName;
+    }
+
+    function appendMessage(data) {
+      const isSelf = data.name === userName;
+
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("message", isSelf ? "sent" : "received");
+
+      const nameTag = document.createElement("div");
+      nameTag.classList.add("nameTag");
+      nameTag.textContent = data.name;
+      nameTag.style.color = isSelf ? "black" : "gray";
+
+      const msgBubble = document.createElement("div");
+      msgBubble.classList.add("msgBubble");
+
+      if (data.message.startsWith("file::")) {
+        const fileURL = data.message.replace("file::", "");
+        const link = document.createElement("a");
+        link.href = fileURL;
+        link.download = "";
+        link.innerText = "Download File";
+        link.target = "_blank";
+
+        const fileName = shortenFileName(data.fileName);
+        const fileSize = data.fileSize;
+
+        const fileInfo = document.createElement("div");
+        fileInfo.classList.add("fileInfo");
+        fileInfo.innerHTML = `${fileName} - ${fileSize}`;
+
+        msgBubble.appendChild(link);
+        msgBubble.appendChild(fileInfo);
+      } else {
+        msgBubble.textContent = data.message;
+      }
+
+      wrapper.appendChild(nameTag);
+      wrapper.appendChild(msgBubble);
+      messagesDiv.appendChild(wrapper);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function sendMessage() {
+      const messageInput = document.getElementById("messageInput");
+      const message = messageInput.value.trim();
+      if (message) {
+        const newMessage = { name: userName, message };
+        const messageRef = push(ref(db, `chats/${chatCode}/messages`));
+        set(messageRef, newMessage);
+        messageInput.value = '';
+        messageSound.play();
+      }
+    }
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const newMessage = {
+          name: userName,
+          message: `file::${e.target.result}`,
+          fileName: file.name,
+          fileSize: (file.size / 1024).toFixed(2) + " KB"
+        };
+        const messageRef = push(ref(db, `chats/${chatCode}/messages`));
+        set(messageRef, newMessage);
+        messageSound.play();
+      };
+      reader.readAsDataURL(file); // Base64 upload
+    });
+
+    const messagesRef = ref(db, `chats/${chatCode}/messages`);
+    onChildAdded(messagesRef, (snapshot) => {
+      const data = snapshot.val();
+      appendMessage(data);
+    });
+
+    window.onload = () => {
+      updateOnlineStatus('online');
+      trackOnlineUsers();
+      setTimeout(() => {
+        document.getElementById('splashScreen').style.display = 'none';
+      }, 2000);
+    };
+
+    window.sendMessage = sendMessage;
+  </script> 
+ </body>
+</html>
